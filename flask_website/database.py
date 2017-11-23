@@ -26,7 +26,8 @@ class User(db.Model):
     phone = db.Column(db.Integer)
     add_time = db.Column(db.Integer)
 
-    def __init__(self, phone=None,password=None,username=None,add_time=None):
+    def __init__(self, id=None,phone=None,password=None,username=None,add_time=None):
+        self.id = id
         self.password = password
         self.phone = phone
         self.username = username
@@ -38,6 +39,25 @@ class User(db.Model):
     def insert(self,user):
         db.session.add(user)
         db.session.commit()
+
+
+    def update(user):
+        oldUser = User.query.filter(User.id==user.id).first()
+        if(user.username is not None):
+            oldUser.username = user.username;
+        if (user.password is not None):
+            oldUser.password = user.password;
+
+        # count = User.query.filter(User.id==user.id).update({
+        #     User.username: user.username
+        # })
+        db.session.add(oldUser)
+        db.session.commit()
+
+    @staticmethod
+    def getUserinfo(userId):
+        data = User.query.filter(User.id==userId).first()
+        return data
 
 
     # repr()方法显示一个可读字符串，虽然不是完全必要，不过用于调试和测试还是很不错的。
@@ -157,8 +177,7 @@ class IndentProduct(db.Model):
             'product_id': self.product_id,
             'indent_id': self.indent_id,
             'price': self.price,
-            'count': self.count,
-
+            'count': self.count
         }
 
 # 购物车列表
@@ -190,7 +209,7 @@ class Cart(db.Model):
         }
         return json.dumps(dict)
 
-    def insert(self, cart):
+    def insert(cart):
         db.session.add(cart)
         db.session.commit()
 
@@ -217,9 +236,11 @@ class Address(db.Model):
     phone = db.Column(db.String(20))
     username = db.Column(db.String(255))
     add_time = db.Column(db.Integer)
+    user_id = db.Column(db.Integer)
 
 
-    def __init__(self, province=None,city=None,county=None,street=None,phone=None,username=None,add_time=None):
+    def __init__(self, id=None,province=None,city=None,county=None,street=None,phone=None,username=None,add_time=None,user_id=None):
+        self.id = id
         self.province = province
         self.city = city
         self.county = county
@@ -227,6 +248,7 @@ class Address(db.Model):
         self.phone = phone
         self.username = username
         self.add_time = add_time
+        self.user_id = user_id
 
     def __repr__(self):
         dict = {
@@ -237,12 +259,31 @@ class Address(db.Model):
             'phone': self.phone,
             'username': self.username,
             'add_time': self.add_time,
+            'user_id': self.user_id,
         }
         return json.dumps(dict)
 
-    def insert(self, address):
+    def insert(address):
         db.session.add(address)
         db.session.commit()
+
+    def update(address):
+        count = Address.query. \
+            filter(Address.id == address.id). \
+            update({Address.province: address.province,
+                    Address.city: address.city,
+                    Address.county: address.county,
+                    Address.street: address.street,
+                    Address.phone: address.phone,
+                    Address.username: address.username})
+        # db.session.add(address)
+        db.session.commit()
+        return count
+
+    def getAddress(userId):
+        address = db.session.query(Address).filter(Address.user_id).all()
+        return jsonify(address = [i.serialize() for i in address])
+
 
     def serialize(self):
         return {
@@ -253,6 +294,7 @@ class Address(db.Model):
             'phone': self.phone,
             'username': self.username,
             'add_time': self.add_time,
+            'user_id': self.user_id,
         }
 
 # 文章类
@@ -287,6 +329,13 @@ class Article(db.Model):
     def insert(self, article):
         db.session.add(article)
         db.session.commit()
+
+    @staticmethod
+    def getArticle():
+        data = Article.query.filter().limit(50).all()
+        print(data)
+        return data
+
 
     def serialize(self):
         return {
@@ -422,8 +471,8 @@ class Product(db.Model):
 
     def __repr__(self):
         dict = {
-            'file_name': self.file_name,
-            'file_path': self.file_path,
+            'name': self.name,
+            'price': self.price,
             'add_time': self.add_time,
             'pid': self.pid,
             'file_id': self.file_id,
@@ -434,10 +483,15 @@ class Product(db.Model):
         db.session.add(product)
         db.session.commit()
 
+    @staticmethod
+    def getProductByPid(pid):
+        data = Product.query.filter(Product.pid==pid).all()
+        return data
+
     def serialize(self):
         return {
-            'file_name': self.file_name,
-            'file_path': self.file_path,
+            'name': self.name,
+            'price': self.price,
             'add_time': self.add_time,
             'pid': self.pid,
             'file_id': self.file_id,

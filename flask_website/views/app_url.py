@@ -1,7 +1,7 @@
 from flask import Flask,Blueprint, render_template, request,jsonify,make_response
 mod = Blueprint('app_url', __name__, url_prefix='/app')
 
-from flask_website.database import User,Indent,IndentProduct,Cart
+from flask_website.database import User,Indent,IndentProduct,Cart,Address,Article,Product
 import hashlib,json,time
 app = Flask(__name__)
 
@@ -84,6 +84,108 @@ def cart():
     userId = request.args.get('userId')
     cart = Cart.query.filter_by(user_id=userId).all()
     return jsonify(indent=[i.serialize() for i in indent])
+
+@mod.route('/get_in_cart',methods=['POST'])
+def get_in_cart():
+    userId = request.args.get('userId')
+    product_id = request.args.get('productId')
+    count = request.args.get('count')
+    addTime = int(time.time())
+    cart = Cart(user_id=userId,product_id=product_id,count=count,add_time=addTime)
+    Cart.insert(cart)
+    dict = {'status': 1}
+    return jsonify(dict)
+
+
+@mod.route('/address',methods=['POST'])
+def address():
+    userId = request.args.get('userId')
+    return Address.getAddress(userId)
+
+@mod.route('/address/add',methods=['POST'])
+def add_address():
+    userId = request.args.get('userId')
+    province = request.args.get('province')
+    city = request.args.get('city')
+    county = request.args.get('county')
+    street = request.args.get('street')
+    phone = request.args.get('phone')
+    username = request.args.get('username')
+    addTime = int(time.time())
+    address = Address(province=province,
+                      city=city,
+                      county=county,
+                      street=street,
+                      phone=phone,
+                      username=username,
+                      user_id=userId,
+                      add_time=addTime)
+    Address.insert(address)
+    dict = {'status': 1}
+    return jsonify(dict)
+
+@mod.route('/address/edit',methods=['POST'])
+def edit_address():
+    address_id = request.args.get('addressId')
+    province = request.args.get('province')
+    city = request.args.get('city')
+    county = request.args.get('county')
+    street = request.args.get('street')
+    phone = request.args.get('phone')
+    username = request.args.get('username')
+    addTime = int(time.time())
+    address = Address(id=address_id,
+                      province=province,
+                      city=city,
+                      county=county,
+                      street=street,
+                      phone=phone,
+                      username=username,
+                      add_time=addTime)
+    result = Address.update(address)
+    dict = {'status': result}
+    return jsonify(dict)
+
+@mod.route('/article',methods=['POST'])
+def get_article():
+    dict = Article.getArticle()
+    return jsonify(articles=[i.serialize() for i in dict])
+
+@mod.route('/get_product',methods=['POST'])
+def get_product():
+    pid = request.args.get('pid')
+    dict = Product.getProductByPid(pid)
+    return jsonify(products=[i.serialize() for i in dict])
+
+
+@mod.route('/userinfo',methods=['POST'])
+def userinfo():
+    userId = request.args.get('userId')
+    user = User.getUserinfo(userId)
+    return jsonify(user.to_json())
+
+@mod.route('/user/edit',methods=['POST'])
+def user_edit():
+    userId = request.args.get('userId')
+    username = request.args.get('username')
+    user = User(username=username,id=userId)
+    User.update(user)
+    return jsonify({'status':1})
+
+@mod.route('/user/repassword',methods=['POST'])
+def repassword():
+    userId = request.args.get('userId')
+    password = request.args.get('password')
+    m = hashlib.md5()
+    m.update(password.encode("UTF-8"))
+    psw = m.hexdigest()
+    user = User(password=psw, id=userId)
+    User.update(user)
+    return jsonify({'status': 1})
+
+
+
+# @mod.route('/')
 
 # @mod.route('/validation',methods=["POST"])
 # def validation():
