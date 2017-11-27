@@ -1,4 +1,4 @@
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
 from flask_website import app
 from flask import jsonify
 from sqlalchemy.orm import sessionmaker
@@ -25,18 +25,20 @@ class User(db.Model):
     password = db.Column(db.String(255))
     phone = db.Column(db.Integer)
     add_time = db.Column(db.Integer)
+    role_id = db.Column(db.Integer)
 
-    def __init__(self, id=None,phone=None,password=None,username=None,add_time=None):
+    def __init__(self, id=None,phone=None,password=None,username=None,add_time=None,role_id=None):
         self.id = id
         self.password = password
         self.phone = phone
         self.username = username
         self.add_time = add_time
+        self.role_id = role_id
 
     # def __repr__(self):
     #     return '{username:'+self.username+'}'
 
-    def insert(self,user):
+    def insert(user):
         db.session.add(user)
         db.session.commit()
 
@@ -64,9 +66,52 @@ class User(db.Model):
 
     def to_json(self):
         return {
+            'id': self.id,
             'username': self.username,
             'phone': self.phone,
-            'addTime': self.add_time
+            'addTime': self.add_time,
+            'role_id': self.role_id,
+        }
+
+# 角色类
+class Role(db.Model):
+
+    # 表名
+    __tablename__ = 'x_role'
+
+    # 列对象
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255))
+    power = db.Column(db.Integer)
+
+    def __init__(self,id=None, name=None, power=None):
+        self.id = id
+        self.name = name
+        self.power = power
+
+    def __repr__(self):
+        dict = {
+            'id': self.id,
+            'name': self.name,
+            'power': self.power,
+        }
+
+        return json.dumps(dict)
+
+    def delete(id):
+        role = Indent.query.filter(Role.id == id).first()
+        db.session.delete(role)
+        db.session.commit()
+
+    def insert(user):
+        db.session.add(user)
+        db.session.commit()
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'power': self.power,
         }
 
 # 订单类
@@ -82,24 +127,33 @@ class Indent(db.Model):
     price = db.Column(db.String(255))
     address = db.Column(db.String(255))
     add_time = db.Column(db.Integer)
+    status = db.Column(db.Integer)
 
-    def __init__(self, number=None,user_id=None,price=None,address=None,add_time=None):
+    def __init__(self, number=None,user_id=None,price=None,address=None,add_time=None,status=None):
         self.number = number
         self.user_id = user_id
         self.price = price
         self.address = address
         self.add_time = add_time
+        self.status = status
 
     def __repr__(self):
         dict = {
+            'id': self.id,
             'number': self.number,
             'user_id': self.user_id,
             'price': self.price,
             'address': self.address,
             'add_time': self.add_time,
+            'status': self.status,
         }
 
         return json.dumps(dict)
+
+    def delete(id):
+        indent = Indent.query.filter(Indent.id==id).first()
+        db.session.delete(indent)
+        db.session.commit()
 
     def insert(self, indent):
         db.session.add(indent)
@@ -107,11 +161,13 @@ class Indent(db.Model):
 
     def serialize(self):
         return {
+            'id': self.id,
             'number': self.number,
             'user_id': self.user_id,
             'price': self.price,
             'address': self.address,
             'add_time': self.add_time,
+            'status': self.status,
         }
 
 # 订单详情类
@@ -166,6 +222,7 @@ class IndentProduct(db.Model):
 
     def serialize(self):
         return {
+            'id': self.id,
             'product_id': self.product_id,
             'indent_id': self.indent_id,
             'price': self.price,
@@ -174,6 +231,7 @@ class IndentProduct(db.Model):
 
     def serialize2(self):
         return {
+            'id': self.id,
             'product_id': self.product_id,
             'indent_id': self.indent_id,
             'price': self.price,
@@ -194,7 +252,8 @@ class Cart(db.Model):
     add_time = db.Column(db.Integer)
 
 
-    def __init__(self, product_id=None,user_id=None,count=None,add_time=None):
+    def __init__(self,id=None, product_id=None,user_id=None,count=None,add_time=None):
+        self.id = id
         self.product_id = product_id
         self.user_id = user_id
         self.count = count
@@ -202,6 +261,7 @@ class Cart(db.Model):
 
     def __repr__(self):
         dict = {
+            'id': self.id,
             'product_id': self.product_id,
             'user_id': self.user_id,
             'count': self.count,
@@ -213,8 +273,23 @@ class Cart(db.Model):
         db.session.add(cart)
         db.session.commit()
 
+    @staticmethod
+    def delete(id):
+        c = Cart.query.filter(Cart.id==id).first()
+        db.session.delete(c)
+        db.session.commit()
+
+    @staticmethod
+    def getCarts(userId):
+        data = db.session.query(Product.name, Product.price,Product.add_time,Cart.count,Cart.add_time). \
+            join(Cart, Cart.product_id == Product.id). \
+            filter(Cart.user_id== userId). \
+            all()
+        return data
+
     def serialize(self):
         return {
+            'id': self.id,
             'product_id': self.product_id,
             'user_id': self.user_id,
             'count': self.count,
@@ -252,6 +327,7 @@ class Address(db.Model):
 
     def __repr__(self):
         dict = {
+            'id': self.id,
             'province': self.province,
             'city': self.city,
             'county': self.county,
@@ -265,6 +341,12 @@ class Address(db.Model):
 
     def insert(address):
         db.session.add(address)
+        db.session.commit()
+
+    @staticmethod
+    def delete(id):
+        address = Address.query.filter(Address.id == id).first()
+        db.session.delete(address)
         db.session.commit()
 
     def update(address):
@@ -287,6 +369,7 @@ class Address(db.Model):
 
     def serialize(self):
         return {
+            'id': self.id,
             'province': self.province,
             'city': self.city,
             'county': self.county,
@@ -319,6 +402,7 @@ class Article(db.Model):
 
     def __repr__(self):
         dict = {
+            'id': self.id,
             'title': self.title,
             'content': self.content,
             'user_id': self.user_id,
@@ -326,19 +410,19 @@ class Article(db.Model):
         }
         return json.dumps(dict)
 
-    def insert(self, article):
+    def insert(article):
         db.session.add(article)
         db.session.commit()
 
     @staticmethod
     def getArticle():
         data = Article.query.filter().limit(50).all()
-        print(data)
         return data
 
 
     def serialize(self):
         return {
+            'id': self.id,
             'title': self.title,
             'content': self.content,
             'user_id': self.user_id,
@@ -364,9 +448,14 @@ class Classify(db.Model):
         }
         return json.dumps(dict)
 
-    def insert(self, classify):
+    def insert(classify):
         db.session.add(classify)
         db.session.commit()
+
+    @staticmethod
+    def getClassify():
+        data = Classify.query.filter().all()
+        return data
 
     def serialize(self):
         return {
@@ -393,18 +482,20 @@ class Comment(db.Model):
 
     def __repr__(self):
         dict = {
+            'id': self.id,
             'title': self.title,
             'content': self.content,
             'user_id': self.user_id,
         }
         return json.dumps(dict)
 
-    def insert(self, comment):
+    def insert(comment):
         db.session.add(comment)
         db.session.commit()
 
     def serialize(self):
         return {
+            'id': self.id,
             'title': self.title,
             'content': self.content,
             'user_id': self.user_id,
@@ -430,6 +521,7 @@ class File(db.Model):
 
     def __repr__(self):
         dict = {
+            'id': self.id,
             'file_name': self.file_name,
             'file_path': self.file_path,
             'add_time': self.add_time,
@@ -442,6 +534,7 @@ class File(db.Model):
 
     def serialize(self):
         return {
+            'id': self.id,
             'file_name': self.file_name,
             'file_path': self.file_path,
             'add_time': self.add_time,
@@ -462,7 +555,8 @@ class Product(db.Model):
     file_id = db.Column(db.Integer)
 
 
-    def __init__(self, name=None,price=None,add_time=None,pid=None,file_id=None):
+    def __init__(self, id=None,name=None,price=None,add_time=None,pid=None,file_id=None):
+        self.id = id
         self.name = name
         self.price = price
         self.add_time = add_time
@@ -471,6 +565,7 @@ class Product(db.Model):
 
     def __repr__(self):
         dict = {
+            'id': self.id,
             'name': self.name,
             'price': self.price,
             'add_time': self.add_time,
@@ -479,7 +574,7 @@ class Product(db.Model):
         }
         return json.dumps(dict)
 
-    def insert(self, product):
+    def insert(product):
         db.session.add(product)
         db.session.commit()
 
@@ -488,8 +583,16 @@ class Product(db.Model):
         data = Product.query.filter(Product.pid==pid).all()
         return data
 
+    def edit(product):
+        data = Product.query.filter(Product.id==product.id).first()
+        data.pid = product.pid
+        data.name = product.name
+        data.price = product.price
+        db.session.add(data)
+
     def serialize(self):
         return {
+            'id': self.id,
             'name': self.name,
             'price': self.price,
             'add_time': self.add_time,
@@ -510,25 +613,37 @@ class WishList(db.Model):
     add_time = db.Column(db.Integer)
 
 
-    def __init__(self, product_id=None,user_id=None,add_time=None):
+    def __init__(self,id=None, product_id=None,user_id=None,add_time=None):
+        self.id = id
         self.product_id = product_id
         self.user_id = user_id
         self.add_time = add_time
 
     def __repr__(self):
         dict = {
+            'id': self.id,
             'product_id': self.product_id,
             'user_id': self.user_id,
             'add_time': self.add_time,
         }
         return json.dumps(dict)
 
-    def insert(self, wishList):
+    def getWishList(userId):
+        data = WishList.query.filter(WishList.user_id==userId).all()
+        return data
+
+    def insert(wishList):
         db.session.add(wishList)
+        db.session.commit()
+
+    def delete(id):
+        wish = WishList.query.filter(WishList.id==id).first()
+        db.session.delete(wish)
         db.session.commit()
 
     def serialize(self):
         return {
+            'id': self.id,
             'product_id': self.product_id,
             'user_id': self.user_id,
             'add_time': self.add_time,

@@ -1,7 +1,7 @@
 from flask import Flask,Blueprint, render_template, request,jsonify,make_response
 mod = Blueprint('app_url', __name__, url_prefix='/app')
 
-from flask_website.database import User,Indent,IndentProduct,Cart,Address,Article,Product
+from flask_website.database import User,Indent,IndentProduct,Cart,Address,Article,Product,Comment,Classify,WishList
 import hashlib,json,time
 app = Flask(__name__)
 
@@ -60,7 +60,7 @@ def register():
     psw = m.hexdigest()
     now = int(time.time())
     me = User(phone=phone,password=psw,add_time=now)
-    me.insert(me)
+    User.insert(me)
     dict = {'status': 1,'user': psw}
     return json.dumps(dict)
 
@@ -69,6 +69,12 @@ def indent():
     userId = request.args.get('userId')
     indent = Indent.query.filter_by(user_id=userId).all()
     return jsonify(indent = [i.serialize() for i in indent])
+
+@mod.route('/indent/delete',methods=['POST'])
+def indent_delete():
+    id = request.args.get('id')
+    Indent.delete(id)
+    return jsonify({'status': 1})
 
 
 @mod.route('/indent_detail',methods=['POST'])
@@ -82,8 +88,11 @@ def indent_detail():
 @mod.route('/cart',methods=['POST'])
 def cart():
     userId = request.args.get('userId')
-    cart = Cart.query.filter_by(user_id=userId).all()
-    return jsonify(indent=[i.serialize() for i in indent])
+    # cart = Cart.query.filter_by(user_id=userId).all()
+    carts = Cart.getCarts(userId)
+    list = [dict(zip(result.keys(), result)) for result in carts]
+    return jsonify(list)
+    # return jsonify(carts=[i.serialize() for i in cart])
 
 @mod.route('/get_in_cart',methods=['POST'])
 def get_in_cart():
@@ -93,6 +102,13 @@ def get_in_cart():
     addTime = int(time.time())
     cart = Cart(user_id=userId,product_id=product_id,count=count,add_time=addTime)
     Cart.insert(cart)
+    dict = {'status': 1}
+    return jsonify(dict)
+
+@mod.route('/cart/delete',methods=['POST'])
+def cart_delete():
+    id = request.args.get('id')
+    Cart.delete(id)
     dict = {'status': 1}
     return jsonify(dict)
 
@@ -146,6 +162,12 @@ def edit_address():
     dict = {'status': result}
     return jsonify(dict)
 
+@mod.route('/address/delete',methods=['POST'])
+def address_delete():
+    id = request.args.get('id')
+    Address.delete(id)
+    return jsonify({'status': 1})
+
 @mod.route('/article',methods=['POST'])
 def get_article():
     dict = Article.getArticle()
@@ -183,7 +205,41 @@ def repassword():
     User.update(user)
     return jsonify({'status': 1})
 
+@mod.route('/discuss/add',methods=['POST'])
+def discuss_add():
+    userId = request.args.get('userId')
+    title = request.args.get('title')
+    content = request.args.get('content')
+    comment = Comment(title=title,content=content,user_id=userId)
+    Comment.insert(comment)
+    return jsonify({'status': 1})
 
+@mod.route('/classify',methods=['POST'])
+def classify_add():
+    dict = Classify.getClassify()
+    return jsonify(classify=[i.serialize() for i in dict])
+
+@mod.route('/wish',methods=['GET'])
+def wish():
+    userId = request.args.get('userId')
+    dict = WishList.getWishList(userId)
+    return jsonify(wish=[i.serialize() for i in dict])
+
+@mod.route('/wish/add',methods=['POST'])
+def wish_add():
+    productId = request.args.get('productId')
+    userId = request.args.get('userId')
+    addTime = time.time()
+    wishList = WishList(product_id=productId,user_id=userId,add_time=addTime)
+    WishList.insert(wishList)
+    return jsonify({'status': 1})
+
+@mod.route('/wish/delete',methods=['POST'])
+def wish_delete():
+    id = request.args.get('id')
+    addTime = time.time()
+    WishList.delete(id)
+    return jsonify({'status': 1})
 
 # @mod.route('/')
 
